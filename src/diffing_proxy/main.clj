@@ -1,5 +1,6 @@
 (ns diffing-proxy.main
   (:require
+            [clojure.edn :as edn]
             [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.adapter.jetty :refer [run-jetty]]
@@ -14,17 +15,30 @@
 (def app
   (wrap-reload app-routes))
 
-(defn start-server! [options]
-  (def server (run-jetty #'app options)))
+(defn start-server! [config]
+  "Start the server and store it in a var."
+  (def server (run-jetty #'app (:proxy config))))
 
 (defn stop-server! []
+  "Stop the server if running."
   (if-let [server (resolve 'server)]
     (.stop @server)))
 
+(defn read-config [path]
+  (edn/read-string (slurp path)))
+
+(defn reread-config! [path]
+  "Re-read the config file and restart the server."
+  (let [config (read-config path)]
+    (stop-server!)
+    (start-server! config)))
+
 (defn -main [& args]
   (let [invocation (read-command-line-opts args)
-        {:keys [options arguments errors summary]} invocation]
+        {:keys [options errors summary]} invocation]
     (cond
-      errors (doseq [e errors] (println e))
+      errors (do
+               (doseq [e errors] (println e))
+               (System/exit 1))
       (:help options) (println summary)
-      :else (start-server! options))))
+      :else (start-server! (read-config (:config options))))))
