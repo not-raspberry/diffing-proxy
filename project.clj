@@ -2,7 +2,7 @@
   :description "A service do convert full state updates to incremental updates in HTTP reponses."
   :url "https://github.com/not-raspberry/diffing-proxy/"
   :min-lein-version "2.0.0"
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [compojure "1.5.0"]
                  [ring "1.4.0"]
                  [differ "0.3.1"]
