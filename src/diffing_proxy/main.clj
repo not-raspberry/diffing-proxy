@@ -15,7 +15,7 @@
 (def server)
 
 (defn rebind-routes! []
-  (def app-routes (proxy-routes (:routes config))))
+  (def app-routes (proxy-routes (:routes config) (:backend config))))
 
 (defn full-wrap-reload
   "Wrap the routes handler function with a custom wrapper that will not only
