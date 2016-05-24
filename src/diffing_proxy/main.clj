@@ -4,6 +4,7 @@
             [compojure.route :as route]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.reload :refer [wrap-reload]]
+            [ring.middleware.params :refer [wrap-params]]
             [diffing-proxy.config :refer [read-command-line-opts]]
             [diffing-proxy.routes :refer [proxy-routes]])
   (:gen-class))
@@ -31,7 +32,7 @@
   "Start the server and store it in a var."
   []
   (rebind-routes!)
-  (def server (run-jetty (full-wrap-reload #'app-routes) (:proxy config))))
+  (def server (run-jetty (wrap-params (full-wrap-reload #'app-routes)) (:proxy config))))
 
 (defn stop-server!
   "Stop the server if running."

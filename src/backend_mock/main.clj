@@ -6,7 +6,6 @@
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.util.response :refer [response not-found]]
             [clojure.pprint :refer [pprint]])
-  (:use [debugger.core :refer :all])
   (:gen-class))
 
 (def server)
