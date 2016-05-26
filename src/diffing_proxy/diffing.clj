@@ -34,6 +34,14 @@
       (cache-response! path version parsed-response-body)
       (log/error "Unversioned reponse to" path))))
 
+(defn query-backend
+  "Ask the backend for a state update.
+
+  Will throw com.fasterxml.jackson.core.JsonParseException if the backend
+  responds with an invalid JSON. Propagates clj-http.client exceptions."
+  [base-backend-address path]
+  (->> (str base-backend-address path) client/get :body parse-string))
+
 (defn state-update-response
   "Serve incremental or full state update.
 
@@ -54,14 +62,8 @@
   Backend response JSON will be memorised in `cached-versions` under
   its version key."
   (try+
-    (let [resource-url (str base-backend-address path)
-          body (:body (client/get resource-url))
-          recent-state (parse-string body)]
-      ; This is the current mean of updating the local cache. In order not
-      ; to spam the backend with requests, backend requests should be throttled
-      ; in future.
+    (let [recent-state (query-backend base-backend-address path)]
       (integrate-response! path recent-state)
-      ; Therefore, do not rely on holding the `recent-state` here:
       (response (generate-string (state-update-response
                                    @cached-versions path client-version))))
     (catch [:status 404] _
