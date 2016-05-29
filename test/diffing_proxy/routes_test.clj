@@ -11,7 +11,7 @@
 (def fake-routes-config
   (zipmap (keys fake-backend-resources) (repeat {})))
 
-(defn fake-handle-diffed-route
+(defn fake-dispatch-state-update
   "Simulates fake backend query, without the diffing part."
   [base-backend-address path client-version]
   (if-let [fake-response (fake-backend-resources path)]
@@ -20,8 +20,8 @@
 
 (deftest test-routes
   (let [routes (proxy-routes fake-routes-config {})]
-    (with-redefs [diffing-proxy.diffing/handle-diffed-route
-                  fake-handle-diffed-route]
+    (with-redefs [diffing-proxy.diffing/dispatch-state-update
+                  fake-dispatch-state-update]
 
       (testing "main route"
         (let [response (routes (mock/request :get "/"))]
