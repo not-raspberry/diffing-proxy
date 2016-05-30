@@ -49,3 +49,13 @@
        "12ad" :invalid
        "-12al" :invalid
        "-12e1" :invalid))
+
+(deftest test-backend-address
+  (are [backend-config url] (= (backend-address backend-config) url)
+       {} "http://localhost:8000"
+       {:scheme "https"} "https://localhost:8000"
+       {:host "1.2.3.4"} "http://1.2.3.4:8000"
+       {:port 80} "http://localhost:80"
+
+       {:scheme "http-over-avian-carriers" :host "here" :port "1337"}
+       "http-over-avian-carriers://here:1337"))
