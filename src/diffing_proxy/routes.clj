@@ -6,8 +6,7 @@
 (defn parse-version
   "Return parsed integer if `version-string` is not missing (nil) or empty, otherwise :invalid"
   [version-string]
-  (if (or (empty? version-string) (nil? version-string))
-    nil
+  (when-not (or (empty? version-string) (nil? version-string))
     (try (Integer/parseInt version-string)
          (catch NumberFormatException e :invalid))))
 

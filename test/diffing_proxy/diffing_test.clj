@@ -20,7 +20,7 @@
       (is (= twice-updated-cache
              {"/path" {10 {"krakens" [200 300]}
                        11 {"krakens" [200 300 400 500]}}}))
-      (is (is (values-sorted? twice-updated-cache)))))
+      (is (values-sorted? twice-updated-cache))))
 
   (testing "2 different resources in the cache map"
     (let [two-resources-cache
@@ -45,9 +45,9 @@
       (is (= (integrate-response fake-caching-fn "/path"
                                  {"version" 2, "value" "xxx"})
              :cached))
-    (testing "inversioned responses are ignored"
-      (is (= (integrate-response fake-caching-fn "/path" {"value" "xxx"})
-             nil))))))
+    (testing "unversioned responses are ignored"
+      (is (nil? (integrate-response fake-caching-fn
+                                    "/path" {"value" "xxx"})))))))
 
 (deftest test-state-update-response
   (let [state-1 {"state" [123 123]}

@@ -12,7 +12,7 @@
   (zipmap (keys fake-backend-resources) (repeat {})))
 
 (defn fake-dispatch-state-update
-  "Simulates fake backend query, without the diffing part."
+  "Simulates a fake backend query, without the diffing part."
   [base-backend-address path client-version]
   (if-let [fake-response (fake-backend-resources path)]
     {:status 200 :body fake-response}
