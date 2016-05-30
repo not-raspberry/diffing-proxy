@@ -10,12 +10,11 @@
 
 
 ; Schema behind the atom:
-; {"/path1"
-;  ; value - sorted map:
-;  {1 {"version" 1, "some_data" [], "sth_else" {}}
-;   2 {"version" 2, "some_data" [1 2 3], "sth_else" {"a" 12}}
-;   4 {"version" 4, "some_data" [1 2 3 4], "sth_else" {"a" 14}}}
-;  "/path2" {}}
+; {"/path1" (sorted-map
+;             1 {"version" 1, "some_data" [], "sth_else" {}}
+;             2 {"version" 2, "some_data" [1 2 3], "sth_else" {"a" 12}}
+;             4 {"version" 4, "some_data" [1 2 3 4], "sth_else" {"a" 14}})
+;             "/path2" (sorted-map)}
 (def cached-versions (atom {}))
 
 (defn update-cache [cache path version body]
@@ -27,11 +26,14 @@
 (defn cache-response! [path version body]
   (swap! cached-versions #(update-cache % path version body)))
 
-(defn integrate-response!
-  [path parsed-response-body]
+(defn integrate-response
+  "Save the response in the cache for the path under its version.
+
+  Log an error if the body contains no version."
+  [caching-fn path parsed-response-body]
   (let [version (parsed-response-body "version")]
     (if (number? version)
-      (cache-response! path version parsed-response-body)
+      (caching-fn path version parsed-response-body)
       (log/error "Unversioned reponse to" path))))
 
 (defn query-backend
@@ -49,7 +51,7 @@
   version of the state and the diffing-proxy has that version in its cache."
   [cache path client-version]
   (let [latest-version (second (last (get cache path)))]
-    (if-let [client-state (get-in cache [path client-version])]
+    (if-some [client-state (get-in cache [path client-version])]
       (diff client-state latest-version)
       latest-version)))
 
@@ -63,7 +65,7 @@
   its version key."
   (try+
     (let [recent-state (query-backend base-backend-address path)]
-      (integrate-response! path recent-state)
+      (integrate-response cache-response! path recent-state)
       (response (generate-string (state-update-response
                                    @cached-versions path client-version))))
     (catch [:status 404] _
