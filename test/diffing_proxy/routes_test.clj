@@ -1,6 +1,8 @@
 (ns diffing-proxy.routes-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :as mock]
+            [cheshire.core :refer [generate-string]]
+            [differ.core :refer [diff]]
             [diffing-proxy.routes :refer :all]
             [diffing-proxy.diffing :refer :all]))
 
@@ -59,3 +61,42 @@
 
        {:scheme "http-over-avian-carriers" :host "here" :port "1337"}
        "http-over-avian-carriers://here:1337"))
+
+(deftest test-dispatch-state-update
+  (testing "when there are no cached versions, the response is a full state
+           update, unless the client claims to hold the latest version,
+           in which case it's expected to be an empty diff"
+    (let [latest-state {"version" 10, "val" [1 2 3]}]
+      (doseq [[version-held-by-client expected-response]
+              [[nil latest-state]
+               [5 latest-state]
+               [10 (diff {} {})]]]
+        (with-redefs
+          [diffing-proxy.diffing/cached-versions (atom {})
+           diffing-proxy.diffing/query-backend (constantly latest-state)]
+          (let [response (dispatch-state-update
+                           "some-backend-addr" "/path" version-held-by-client)]
+            (is (= (:status response) 200))
+            (is (= (:body response) (generate-string expected-response)))
+            (is (= (get-in @cached-versions ["/path" 10]) latest-state)
+                "The new response should be cached."))))))
+
+  (testing "when the version held by the client is cached, the client is served
+           a diff between the version it already knows and the latest one"
+    (let [sample-versions (sorted-map 7 {"version" 7, "data" [1]},
+                                      13 {"version" 13, "data" [1 2 3 4]},
+                                      17 {"version" 17, "data" [1 2 3 4 5 6]})]
+      (doseq [[client-state-number expected-diff]
+              [[7 (diff (sample-versions 7) (sample-versions 17))]
+               [13 (diff (sample-versions 13) (sample-versions 17))]]]
+        (with-redefs
+          [diffing-proxy.diffing/cached-versions (atom {"/path" sample-versions})
+           diffing-proxy.diffing/query-backend (constantly (sample-versions 17))]
+          (let [response (dispatch-state-update "http://some-backend-addr"
+                                                "/path" client-state-number)]
+
+            (is (= (:status response) 200))
+            (is (= (:body response) (generate-string expected-diff)))
+            (is (= (@cached-versions "/path") sample-versions)
+                "The cache is not expected to change, since the version
+                returned by the backend was already cached.")))))))
