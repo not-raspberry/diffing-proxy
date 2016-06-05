@@ -71,7 +71,7 @@
     (catch [:status 404] _
       {:status 404, :body "Not Found on the backend"})
     (catch JsonParseException e
-      (log/error "Backend responded an invalid JSON:" (.getMessage e))
+      (log/error "Backend responded with an invalid JSON:" (.getMessage e))
       {:status 502
        :body "Bad Gateway\nBackend responded with an invalid JSON."})
     (catch map? {:keys [:status]}

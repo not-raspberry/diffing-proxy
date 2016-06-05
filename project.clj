@@ -15,6 +15,7 @@
   :main ^:skip-aot diffing-proxy.main
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.0"]]}
+                        [ring/ring-mock "0.3.0"]
+                        [clj-http-fake "1.0.2"]]}
    :backend-mock [:default {:main backend-mock.main}]
    :uberjar {:aot :all}})

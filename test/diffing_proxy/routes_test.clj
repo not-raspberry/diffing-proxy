@@ -1,6 +1,7 @@
 (ns diffing-proxy.routes-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :as mock]
+            [clj-http.fake :refer [with-fake-routes]]
             [cheshire.core :refer [generate-string]]
             [differ.core :refer [diff]]
             [diffing-proxy.routes :refer :all]
@@ -99,4 +100,26 @@
             (is (= (:body response) (generate-string expected-diff)))
             (is (= (@cached-versions "/path") sample-versions)
                 "The cache is not expected to change, since the version
-                returned by the backend was already cached.")))))))
+                returned by the backend was already cached.")))))
+
+    (testing "backend responding with 404"
+      (with-fake-routes {"http://backend.local/pluto"
+                         (constantly {:status 404, :body "{\"version\": 21}"})}
+        (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+               {:status 404, :body "Not Found on the backend"}))))
+
+    (testing "backend responding with 5xx"
+      (doseq [backend-status [500 501 503]]
+        (with-fake-routes {"http://backend.local/pluto"
+                           (constantly {:status backend-status :body "Error."})}
+          (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+                 {:status 502
+                  :body (str "Bad Gateway\nBackend responded with "
+                             backend-status)})))))
+
+    (testing "backend responding with an invalid JSON"
+      (with-fake-routes {"http://backend.local/pluto"
+                         (constantly {:status 200, :body "<html>"})}
+        (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+               {:status 502
+                :body "Bad Gateway\nBackend responded with an invalid JSON."}))))))
