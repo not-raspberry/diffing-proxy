@@ -1,4 +1,4 @@
-# diffing-proxy
+# diffing-proxy [![Build Status](https://travis-ci.org/not-raspberry/diffing-proxy.svg?branch=travis-setup)](https://travis-ci.org/not-raspberry/diffing-proxy)
 
 or The Hacky Thing.
 
