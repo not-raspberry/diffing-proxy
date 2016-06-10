@@ -14,7 +14,7 @@
 (defmulti handler :request-method)
 
 (defmethod handler :get [request]
-  (if-let [content (@resources (request :uri))]
+  (if-some [content (@resources (request :uri))]
     (response content)
     (not-found "Not Found")))
 
@@ -32,7 +32,7 @@
 (defn start-server!
   "Start the server and store it in a var."
   [config]
-  (def server (run-jetty (wrap-reload #'handler) config)))
+  (alter-var-root #'server (run-jetty (wrap-reload #'handler) config)))
 
 (defn -main []
   (start-server! {:port 8000}))

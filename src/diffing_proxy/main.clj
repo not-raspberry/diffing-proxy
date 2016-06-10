@@ -16,7 +16,7 @@
 (def server)
 
 (defn rebind-routes! []
-  (def app-routes (proxy-routes (:routes config) (:backend config))))
+  (alter-var-root #'app-routes (constantly (proxy-routes (:routes config) (:backend config)))))
 
 (defn full-wrap-reload
   "Wrap the routes handler function with a custom wrapper that will not only
@@ -32,7 +32,10 @@
   "Start the server and store it in a var."
   []
   (rebind-routes!)
-  (def server (run-jetty (wrap-params (full-wrap-reload #'app-routes)) (:proxy config))))
+  (alter-var-root
+    #'server
+    (constantly (run-jetty (wrap-params (full-wrap-reload #'app-routes))
+                           (:proxy config)))))
 
 (defn stop-server!
   "Stop the server if running."
@@ -55,5 +58,6 @@
                (System/exit 1))
       (:help options) (println summary)
       :else (do
-              (def config (read-config (:config options)))
-              (start-server! config)))))
+              (alter-var-root #'config
+                              (constantly (read-config (:config options))))
+              (start-server!)))))
