@@ -2,7 +2,7 @@
 
 or The Hacky Thing.
 
-A service do convert HTTP reponses with full state updates to incremental ones. May be useful
+A service to convert HTTP reponses with full state updates to incremental ones. May be useful
 when it's suboptimal to respond with full state to each request but it's affordable to send
 the full state the first time client requests it.
 
@@ -22,6 +22,19 @@ request and apply
 state updates.
 
 ```
+
+## Roadmap
+
+### Done
+
+* Basic diffing and caching implementation
+
+### To do
+
+* Smarter caching of backend state, decoupled from requests
+* Backend requests timeouts
+* Accepting more than just JSONs
+* Integration testing - the boot path is uncovered
 
 ### Sample session
 
@@ -65,11 +78,12 @@ You will need [Leiningen][] 2.0.0 or above installed.
 
 ## Running
 
-To start a web server for the application, run:
+To start the diffing proxy, run:
 
     lein run -c config.edn
 
-To start a mock backend app:
+To start a mock backend app (an app that memorises request bodies of POST
+requests and responds with them to GET requests on the same path):
 
     lein with-profile backend-mock run
 

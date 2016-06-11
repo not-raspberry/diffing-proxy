@@ -1,5 +1,5 @@
 (defproject diffing-proxy "0.1.0-SNAPSHOT"
-  :description "A service do convert full state updates to incremental updates in HTTP reponses."
+  :description "A service to convert full state updates to incremental updates in HTTP reponses."
   :url "https://github.com/not-raspberry/diffing-proxy/"
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.8.0"]
