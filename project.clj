@@ -3,9 +3,9 @@
   :url "https://github.com/not-raspberry/diffing-proxy/"
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/tools.cli "0.3.4"]
+                 [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [ring "1.4.0"]
+                 [ring "1.5.0"]
                  [clj-http "2.2.0"]
                  [differ "0.3.1"]
                  [slingshot "0.12.2"]
