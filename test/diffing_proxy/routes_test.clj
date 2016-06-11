@@ -21,23 +21,23 @@
     {:status 200 :body fake-response}
     {:status 404 :body "Not Found on the backend"}))
 
-(deftest test-routes
-  (let [routes (proxy-routes fake-routes-config {})]
+(deftest test-handler
+  (let [configured-handler (partial handler fake-routes-config {})]
     (with-redefs [diffing-proxy.diffing/dispatch-state-update
                   fake-dispatch-state-update]
 
       (testing "main route"
-        (let [response (routes (mock/request :get "/"))]
+        (let [response (configured-handler (mock/request :get "/"))]
           (is (= (:status response) 200))))
 
       (testing "configured backend routes"
         (doseq [[route expected-response-body] fake-backend-resources]
-          (let [response (routes (mock/request :get route))]
+          (let [response (configured-handler (mock/request :get route))]
             (is (= (:status response) 200))
             (is (= (:body response) expected-response-body)))))
 
       (testing "not-found route"
-        (let [response (routes (mock/request :get "/invalid"))]
+        (let [response (configured-handler (mock/request :get "/invalid"))]
           (is (= (:status response) 404)))))))
 
 (deftest test-parse-version

@@ -1,7 +1,6 @@
 (ns diffing-proxy.diffing
   (:require [clj-http.client :as client]
             [clojure.tools.logging :as log]
-            [clojure.data.json :as json]
             [ring.util.response :refer [response]]
             [differ.core :refer [diff]]
             [cheshire.core :refer [parse-string generate-string]]
