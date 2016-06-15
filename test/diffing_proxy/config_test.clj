@@ -4,9 +4,9 @@
 
 (deftest test-missing-config-argument-to-error
   (testing "Lack of the --config argument is an error"
-    (is
-      (missing-config-argument-to-error {:options []})
-      {:options [], :errors ["No --config provided."]}))
+    (is (=
+         (missing-config-argument-to-error {:options []})
+         {:options [], :errors ["No --config provided."]})))
 
   (testing
     "When --config or --help are passed, commandline arguments are not transformed"

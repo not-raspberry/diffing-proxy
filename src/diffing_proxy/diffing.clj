@@ -54,7 +54,7 @@
       (diff client-state latest-version)
       latest-version)))
 
-(defn dispatch-state-update [base-backend-address path client-version]
+(defn dispatch-state-update
   "Ask the backend for the most recent version, and if the client holds
   the state of some older version and the diffing-proxy cached that version,
   respond with a diff from the client version to the most recent one.
@@ -62,6 +62,7 @@
 
   Backend response JSON will be memorised in `cached-versions` under
   its version key."
+  [base-backend-address path client-version]
   (try+
     (let [recent-state (query-backend base-backend-address path)]
       (integrate-response cache-response! path recent-state)
