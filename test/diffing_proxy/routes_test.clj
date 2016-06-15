@@ -36,9 +36,25 @@
             (is (= (:status response) 200))
             (is (= (:body response) expected-response-body)))))
 
-      (testing "not-found route"
-        (let [response (configured-handler (mock/request :get "/invalid"))]
-          (is (= (:status response) 404)))))))
+      (testing "not-found"
+        (are [path method]
+             (= (:status (configured-handler (mock/request method path))) 404)
+             "/what" :get
+             "/what" :put
+             "/what" :post
+             "/wuut" :delete))
+
+      (testing "wrong request methods"
+        (let [existing-configured-route (first (keys fake-backend-resources))]
+          (are [path method]
+               (= (:status (configured-handler (mock/request method path))) 405)
+               "/" :post
+               "/" :delete
+               "/" :brew-tea
+               existing-configured-route :delete
+               existing-configured-route :post
+               existing-configured-route :put))))))
+
 
 (deftest test-parse-version
   (are [version-string result] (= (parse-version version-string) result)

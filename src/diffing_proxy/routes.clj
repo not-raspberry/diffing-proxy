@@ -28,8 +28,20 @@
         {:status 400, :body "Malformed 'known version' number"}
         (dispatch-state-update base-backend-address path client-version))))
 
-(defn handler [routes-config backend-config {path :uri :as request}]
+
+(defmacro must-be-get [method success-form]
+  `(if (= ~method :get)
+     ~success-form
+     {:status 405 :body "Method not allowed"}))
+
+(defn handler
+  [routes-config backend-config {path :uri method :request-method :as request}]
   (cond
-    (= path "/") {:status 200 :body "Diffing proxy root. Nothing to be seen here.\n"}
+    (= path "/") (must-be-get method
+                              {:status 200
+                               :body "Diffing proxy root. Nothing to be seen here.\n"})
+
     (not (contains? routes-config path)) {:status 404 :body "Not Found\n"}
-    :else (handle-diffed-route (backend-address backend-config) path request)))
+
+    :else (must-be-get method (handle-diffed-route
+                                (backend-address backend-config) path request))))
