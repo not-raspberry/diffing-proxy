@@ -40,8 +40,10 @@
 
   Will throw com.fasterxml.jackson.core.JsonParseException if the backend
   responds with an invalid JSON. Propagates clj-http.client exceptions."
-  [base-backend-address path]
-  (->> (str base-backend-address path) client/get :body parse-string))
+  [base-backend-address path headers]
+  (->> (client/get (str base-backend-address path) {:headers headers})
+       :body
+       parse-string))
 
 (defn state-update-response
   "Serve incremental or full state update.
@@ -62,9 +64,9 @@
 
   Backend response JSON will be memorised in `cached-versions` under
   its version key."
-  [base-backend-address path client-version]
+  [base-backend-address path headers client-version]
   (try+
-    (let [recent-state (query-backend base-backend-address path)]
+    (let [recent-state (query-backend base-backend-address path headers)]
       (integrate-response cache-response! path recent-state)
       (response (generate-string (state-update-response
                                    @cached-versions path client-version))))

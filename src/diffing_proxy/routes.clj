@@ -26,7 +26,8 @@
         client-version (parse-version client-version-string)]
       (if (= :invalid client-version)
         {:status 400, :body "Malformed 'known version' number"}
-        (dispatch-state-update base-backend-address path client-version))))
+        (dispatch-state-update
+          base-backend-address path (:headers request) client-version))))
 
 
 (defmacro must-be-get [method success-form]

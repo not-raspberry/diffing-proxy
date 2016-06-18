@@ -1,6 +1,7 @@
 (ns diffing-proxy.diffing-test
   (:require [clojure.test :refer :all]
             [clj-http.client :as client]
+            [clj-http.fake :refer [with-fake-routes]]
             [differ.core :refer [diff]]
             [diffing-proxy.diffing :refer :all]))
 
@@ -70,3 +71,10 @@
     (testing "state-update-response returns an empty diff if the client already
              holds the latest version"
       (is (= (state-update-response cache "/path1" 3) empty-diff)))))
+
+(deftest test-passing-headers
+  (with-fake-routes {"http://backend.local/resource"
+                     (fn [{headers :headers}]
+                       (is (some #(= ["Blue" "lobster"] %) headers))
+                       {:status 200, :body "{\"version\": 21}"})}
+    (dispatch-state-update "http://backend.local" "/resource" {"Blue" "lobster"} nil)))

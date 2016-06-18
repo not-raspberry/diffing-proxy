@@ -16,7 +16,7 @@
 
 (defn fake-dispatch-state-update
   "Simulates a fake backend query, without the diffing part."
-  [base-backend-address path client-version]
+  [base-backend-address path headers client-version]
   (if-let [fake-response (fake-backend-resources path)]
     {:status 200 :body fake-response}
     {:status 404 :body "Not Found on the backend"}))
@@ -92,7 +92,7 @@
           [diffing-proxy.diffing/cached-versions (atom {})
            diffing-proxy.diffing/query-backend (constantly latest-state)]
           (let [response (dispatch-state-update
-                           "some-backend-addr" "/path" version-held-by-client)]
+                           "some-backend-addr" "/path" {} version-held-by-client)]
             (is (= (:status response) 200))
             (is (= (:body response) (generate-string expected-response)))
             (is (= (get-in @cached-versions ["/path" 10]) latest-state)
@@ -110,7 +110,7 @@
           [diffing-proxy.diffing/cached-versions (atom {"/path" sample-versions})
            diffing-proxy.diffing/query-backend (constantly (sample-versions 17))]
           (let [response (dispatch-state-update "http://some-backend-addr"
-                                                "/path" client-state-number)]
+                                                "/path" {} client-state-number)]
 
             (is (= (:status response) 200))
             (is (= (:body response) (generate-string expected-diff)))
@@ -120,15 +120,15 @@
 
     (testing "backend responding with 404"
       (with-fake-routes {"http://backend.local/pluto"
-                         (constantly {:status 404, :body "{\"version\": 21}"})}
-        (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+                         (constantly {:status 404, :body "Not Found"})}
+        (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
                {:status 404, :body "Not Found on the backend"}))))
 
     (testing "backend responding with 5xx"
       (doseq [backend-status [500 501 503]]
         (with-fake-routes {"http://backend.local/pluto"
                            (constantly {:status backend-status :body "Error."})}
-          (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+          (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
                  {:status 502
                   :body (str "Bad Gateway\nBackend responded with "
                              backend-status)})))))
@@ -136,6 +136,6 @@
     (testing "backend responding with an invalid JSON"
       (with-fake-routes {"http://backend.local/pluto"
                          (constantly {:status 200, :body "<html>"})}
-        (is (= (dispatch-state-update "http://backend.local" "/pluto" nil)
+        (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
                {:status 502
                 :body "Bad Gateway\nBackend responded with an invalid JSON."}))))))
