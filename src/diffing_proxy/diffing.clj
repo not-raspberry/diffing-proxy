@@ -35,13 +35,22 @@
       (caching-fn path version parsed-response-body)
       (log/error "Unversioned reponse to" path))))
 
+(defn filter-headers
+  "Discard headers that are related to the client-proxy connection and should not interfere
+  with the proxy-backend queries."
+  [headers-map]
+  (dissoc headers-map
+          "Accept-Encoding" "Accept-Charset" "Connection" "Content-Length" "Content-Type" "TE"
+          "Upgrade"))
+
 (defn query-backend
   "Ask the backend for a state update.
 
   Will throw com.fasterxml.jackson.core.JsonParseException if the backend
   responds with an invalid JSON. Propagates clj-http.client exceptions."
   [base-backend-address path headers]
-  (->> (client/get (str base-backend-address path) {:headers headers})
+  (->> (client/get (str base-backend-address path)
+                   {:headers (filter-headers headers)})
        :body
        parse-string))
 

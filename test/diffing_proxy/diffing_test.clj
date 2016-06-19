@@ -73,8 +73,29 @@
       (is (= (state-update-response cache "/path1" 3) empty-diff)))))
 
 (deftest test-passing-headers
-  (with-fake-routes {"http://backend.local/resource"
-                     (fn [{headers :headers}]
-                       (is (some #(= ["Blue" "lobster"] %) headers))
-                       {:status 200, :body "{\"version\": 21}"})}
-    (dispatch-state-update "http://backend.local" "/resource" {"Blue" "lobster"} nil)))
+  (let [client-headers  ; a map of headers that should not be passed
+        (conj (zipmap ["Accept-Encoding" "Accept-Charset" "Connection"
+                       "Content-Length" "Content-Type" "TE" "Upgrade"]
+                      (repeat "should-not-be-passed"))
+              ["Blue" "lobster"] ["Cookie" "asdf"])]  ; plus some that shouldn
+
+    (with-fake-routes
+      {"http://backend.local/resource"
+       (fn [{backend-request-headers :headers}]
+
+         ; The following client's headers should not be passed - but there
+         ; may be ones sent by the proxy.
+         (are [client-header] (not= (backend-request-headers client-header)
+                                    (client-headers client-header))
+              "Accept-Encoding" "Accept-Charset" "Connection" "Content-Length"
+              "Content-Type" "TE" "Upgrade")
+
+         ; Headers that should be passed exactly:
+         (are [client-header] (= (backend-request-headers client-header)
+                                 (client-headers client-header))
+              "Blue" "Cookie")
+
+         {:status 200, :body "{\"version\": 21}"})}
+
+      (dispatch-state-update
+        "http://backend.local" "/resource" client-headers nil))))
