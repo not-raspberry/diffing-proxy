@@ -1,7 +1,11 @@
 {:routes
+ ; keys: routes to proxy-diff GET requests on
+ ; values: ignored now, :cache is just an example
  {"/route1" {:cache 5000}
-  "/route2" {}} ; routes to proxy-cache GET requests on (per-route maps are ignored now)
- :backend {:host "localhost" ; ignored now - use command-line params
-           :port 8000}
+  "/route2" {}}
+ :backend {:host "localhost"
+           :port 8000
+           :conn-timeout 5000
+           :socket-timeout 5000}
  :proxy {:host "localhost"
          :port 3000}}

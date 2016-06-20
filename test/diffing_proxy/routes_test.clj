@@ -4,8 +4,29 @@
             [clj-http.fake :refer [with-fake-routes]]
             [cheshire.core :refer [generate-string]]
             [differ.core :refer [diff]]
+            [backend-mock.main :as m]
             [diffing-proxy.routes :refer :all]
-            [diffing-proxy.diffing :refer :all]))
+            [diffing-proxy.diffing :refer :all])
+  (:import [java.net ServerSocket]))
+
+(def port-to-occupy 8213)
+
+(defn mock-server
+  "Run a mock server in a separate thread."
+  [f]
+  (let [mock-server (m/start-server {:port port-to-occupy :join? false})]
+    ; will sleep for 10 seconds if the root path is requested:
+    (reset! m/resources {"/timeout" "sleep"})
+    (f)
+    (.stop mock-server)
+    (reset! m/resources {})))
+
+(defmacro test-with-fixture
+  "Use the fixture within a block. Looks like it's time for another test framework."
+  [fixture & test-forms]
+  `(let [test-code# (fn [] ~@test-forms)]
+     (~fixture test-code#)))
+
 
 (def fake-backend-resources
   {"/some_route" {"version" 21, "some-data" {"a" 12}},
@@ -116,26 +137,49 @@
             (is (= (:body response) (generate-string expected-diff)))
             (is (= (@cached-versions "/path") sample-versions)
                 "The cache is not expected to change, since the version
-                returned by the backend was already cached.")))))
+                returned by the backend was already cached."))))))
 
-    (testing "backend responding with 404"
+  (testing "backend responding with 404"
+    (with-fake-routes {"http://backend.local/pluto"
+                       (constantly {:status 404, :body "Not Found"})}
+      (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
+             {:status 404, :body "Not Found on the backend"}))))
+
+  (testing "backend responding with 5xx"
+    (doseq [backend-status [500 501 503]]
       (with-fake-routes {"http://backend.local/pluto"
-                         (constantly {:status 404, :body "Not Found"})}
-        (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
-               {:status 404, :body "Not Found on the backend"}))))
-
-    (testing "backend responding with 5xx"
-      (doseq [backend-status [500 501 503]]
-        (with-fake-routes {"http://backend.local/pluto"
-                           (constantly {:status backend-status :body "Error."})}
-          (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
-                 {:status 502
-                  :body (str "Bad Gateway\nBackend responded with "
-                             backend-status)})))))
-
-    (testing "backend responding with an invalid JSON"
-      (with-fake-routes {"http://backend.local/pluto"
-                         (constantly {:status 200, :body "<html>"})}
+                         (constantly {:status backend-status :body "Error."})}
         (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
                {:status 502
-                :body "Bad Gateway\nBackend responded with an invalid JSON."}))))))
+                :body (str "Bad Gateway\nBackend responded with "
+                           backend-status)})))))
+
+  (testing "backend responding with an invalid JSON"
+    (with-fake-routes {"http://backend.local/pluto"
+                       (constantly {:status 200, :body "<html>"})}
+      (is (= (dispatch-state-update "http://backend.local" "/pluto" {} nil)
+             {:status 502
+              :body "Bad Gateway\nBackend responded with an invalid JSON."}))))
+
+  (testing "cannot connect to the backend"
+    ; there should be nothing listening on that port
+    (is (= (dispatch-state-update "http://localhost:43232" "/sth"
+                                  {:conn-timeout 200} nil)
+           {:status 503
+            :body "Service Unavailable\nConnection refused."})))
+
+  (testing "timeout for establishing backend connection"
+    ; the 10.255.255.1 address is unroutable
+    (is (= (dispatch-state-update "http://10.255.255.1" "/sth"
+                                  {:conn-timeout 200} nil)
+           {:status 504
+            :body "Gateway Timeout\nBackend unreachable."})))
+
+  (test-with-fixture
+    mock-server
+    (testing "timeout for reading from the backend connection socket"
+      (is (= (dispatch-state-update
+               (str "http://127.0.0.1:" port-to-occupy) "/timeout"
+               {:socket-timeout 200} nil)
+             {:status 504
+              :body "Gateway Timeout\nBackend responding too slowly."})))))

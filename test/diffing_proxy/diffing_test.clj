@@ -77,7 +77,7 @@
         (conj (zipmap ["Accept-Encoding" "Accept-Charset" "Connection"
                        "Content-Length" "Content-Type" "TE" "Upgrade"]
                       (repeat "should-not-be-passed"))
-              ["Blue" "lobster"] ["Cookie" "asdf"])]  ; plus some that shouldn
+              ["Blue" "lobster"] ["Cookie" "asdf"])]  ; plus some that should
 
     (with-fake-routes
       {"http://backend.local/resource"
@@ -85,17 +85,17 @@
 
          ; The following client's headers should not be passed - but there
          ; may be ones sent by the proxy.
-         (are [client-header] (not= (backend-request-headers client-header)
-                                    (client-headers client-header))
+         (are [client-header] (not= (client-headers client-header)
+                                    (backend-request-headers client-header))
               "Accept-Encoding" "Accept-Charset" "Connection" "Content-Length"
               "Content-Type" "TE" "Upgrade")
 
          ; Headers that should be passed exactly:
-         (are [client-header] (= (backend-request-headers client-header)
-                                 (client-headers client-header))
+         (are [client-header] (= (client-headers client-header)
+                                 (backend-request-headers client-header))
               "Blue" "Cookie")
 
          {:status 200, :body "{\"version\": 21}"})}
 
       (dispatch-state-update
-        "http://backend.local" "/resource" client-headers nil))))
+        "http://backend.local" "/resource" {:headers client-headers} nil))))

@@ -21,13 +21,15 @@
 (defn handle-diffed-route
   "Handler for a given path that will proxy backend state
   update requests on that path."
-  [base-backend-address path request]
-  (let [client-version-string (get-in request [:params "known-version"])
+  [base-backend-address path backend-request-options
+   {params :params headers :headers :as request}]
+  (let [client-version-string (get params "known-version")
         client-version (parse-version client-version-string)]
       (if (= :invalid client-version)
         {:status 400, :body "Malformed 'known version' number"}
         (dispatch-state-update
-          base-backend-address path (:headers request) client-version))))
+          base-backend-address path
+          (assoc backend-request-options :headers headers) client-version))))
 
 
 (defmacro must-be-get [method success-form]
@@ -42,7 +44,12 @@
                               {:status 200
                                :body "Diffing proxy root. Nothing to be seen here.\n"})
 
-    (not (contains? routes-config path)) {:status 404 :body "Not Found\n"}
+    (contains? routes-config path)
+    (must-be-get method (handle-diffed-route
+                          (backend-address backend-config)
+                          path
+                          (select-keys backend-config
+                                       [:conn-timeout :socket-timeout])
+                          request))
 
-    :else (must-be-get method (handle-diffed-route
-                                (backend-address backend-config) path request))))
+    :else {:status 404 :body "Not Found\n"}))

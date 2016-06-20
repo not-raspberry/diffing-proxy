@@ -5,7 +5,9 @@
             [differ.core :refer [diff]]
             [cheshire.core :refer [parse-string generate-string]]
             [slingshot.slingshot :refer [try+]])
-  (:import [com.fasterxml.jackson.core JsonParseException]))
+  (:import [com.fasterxml.jackson.core JsonParseException]
+           [java.net ConnectException SocketTimeoutException]
+           [org.apache.http.conn ConnectTimeoutException]))
 
 
 ; Schema behind the atom:
@@ -48,9 +50,9 @@
 
   Will throw com.fasterxml.jackson.core.JsonParseException if the backend
   responds with an invalid JSON. Propagates clj-http.client exceptions."
-  [base-backend-address path headers]
+  [base-backend-address path backend-request-options]
   (->> (client/get (str base-backend-address path)
-                   {:headers (filter-headers headers)})
+                   (update backend-request-options :headers filter-headers))
        :body
        parse-string))
 
@@ -73,9 +75,9 @@
 
   Backend response JSON will be memorised in `cached-versions` under
   its version key."
-  [base-backend-address path headers client-version]
+  [base-backend-address path backend-request-options client-version]
   (try+
-    (let [recent-state (query-backend base-backend-address path headers)]
+    (let [recent-state (query-backend base-backend-address path backend-request-options)]
       (integrate-response cache-response! path recent-state)
       (response (generate-string (state-update-response
                                    @cached-versions path client-version))))
@@ -85,6 +87,12 @@
       (log/error "Backend responded with an invalid JSON:" (.getMessage e))
       {:status 502
        :body "Bad Gateway\nBackend responded with an invalid JSON."})
+    (catch ConnectTimeoutException _
+      {:status 504 :body "Gateway Timeout\nBackend unreachable."})
+    (catch SocketTimeoutException _
+      {:status 504 :body "Gateway Timeout\nBackend responding too slowly."})
+    (catch ConnectException _
+      {:status 503 :body "Service Unavailable\nConnection refused."})
     (catch map? {:keys [:status]}
       {:status 502
        :body (str "Bad Gateway\nBackend responded with " status)})))
