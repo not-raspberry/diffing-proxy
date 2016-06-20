@@ -28,12 +28,15 @@ state updates.
 ### Done
 
 * Basic diffing and caching implementation
+* Passing headers from the user request to the backend request
+* Backend requests timeouts
 
 ### To do
 
-* Smarter caching of backend state, decoupled from requests
-* Backend requests timeouts
-* Accepting more than just JSONs
+* Per-user caching of backend state
+* Rate-limiting backend queries
+* Better defined data formats, accepting more than just JSONs
+* A defined way to apply the diffs (for now you have to know about the ``differ`` library)
 * Integration testing - the boot path is uncovered
 
 ### Sample session
