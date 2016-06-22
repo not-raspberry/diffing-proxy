@@ -48,19 +48,24 @@
                   fake-dispatch-state-update]
 
       (testing "main route"
-        (let [response (configured-handler (mock/request :get "/"))]
-          (is (= (:status response) 200))))
+        (are [method] (= (:status (configured-handler (mock/request method "/")))
+                         200)
+             :get :head))
 
       (testing "configured backend routes"
         (doseq [[route expected-response-body] fake-backend-resources]
-          (let [response (configured-handler (mock/request :get route))]
-            (is (= (:status response) 200))
-            (is (= (:body response) expected-response-body)))))
+          (let [get-response (configured-handler (mock/request :get route))
+                head-response (configured-handler (mock/request :head route))]
+            (is (= (:status get-response) 200))
+            (is (= (:body get-response) expected-response-body))
+            (is (= (:status head-response) 200))
+            (is (= (:body head-response) "")))))
 
       (testing "not-found"
         (are [path method]
              (= (:status (configured-handler (mock/request method path))) 404)
              "/what" :get
+             "/what" :head
              "/what" :put
              "/what" :post
              "/wuut" :delete))

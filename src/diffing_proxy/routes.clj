@@ -32,20 +32,23 @@
           (assoc backend-request-options :headers headers) client-version))))
 
 
-(defmacro must-be-get [method success-form]
-  `(if (= ~method :get)
-     ~success-form
+(defmacro get-resource [method success-form]
+  `(condp = ~method
+     :get ~success-form
+     :head {:status 200 :body ""}
      {:status 405 :body "Method not allowed"}))
 
 (defn handler
+  "Dispatches requests - handles the root path, configured backend routes
+  and 404s."
   [routes-config backend-config {path :uri method :request-method :as request}]
   (cond
-    (= path "/") (must-be-get method
+    (= path "/") (get-resource method
                               {:status 200
                                :body "Diffing proxy root. Nothing to be seen here.\n"})
 
     (contains? routes-config path)
-    (must-be-get method (handle-diffed-route
+    (get-resource method (handle-diffed-route
                           (backend-address backend-config)
                           path
                           (select-keys backend-config
