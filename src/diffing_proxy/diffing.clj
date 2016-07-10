@@ -18,11 +18,14 @@
 ;             "/path2" (sorted-map)}
 (def cached-versions (atom {}))
 
-(defn update-cache [cache path version body]
-  (->
-    ; make sure it's a sorted-map:
-    (update cache path #(if (nil? %) (sorted-map) %))
-    (assoc-in [path version] body)))
+(defn update-cache
+  "Feed a body to the cache.
+
+  The body will be stored under the [path version] path.
+  The versions map (stored under `url-path`) will be a sorted-map."
+  [cache url-path version body]
+  (update cache url-path
+          #(conj (or % (sorted-map)) [version body])))
 
 (defn cache-response! [path version body]
   (swap! cached-versions #(update-cache % path version body)))

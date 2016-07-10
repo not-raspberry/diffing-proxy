@@ -1,7 +1,7 @@
 (ns diffing-proxy.config
   (:require [clojure.tools.cli :as cli]))
 
-(def port-validator [#(> % 0) "Ports are integers bigger than zero."])
+(def port-validator [#(pos? 0) "Ports are integers bigger than zero."])
 
 (def arg-spec
   [["-c" "--config FILE" "EDN config file"]
